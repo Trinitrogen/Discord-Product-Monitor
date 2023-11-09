@@ -1,8 +1,27 @@
 import sqlite3
 import requests
 import config
+import sys
+
+def insert_product(product, url, search_string):
+        """ Insert Product Into Database """
+        sql =   '''INSERT INTO products (enabled,product_name, url, 
+                search_string) VALUES (?,?,?,?);'''
+        data_tuple = (1,product, url, search_string)
+        insert_connection = sqlite3.connect('products.db')
+        insert_cursor = insert_connection.cursor()
+        insert_cursor.execute(sql, data_tuple)
+        insert_connection.commit()
+        insert_cursor.close()
+
+def add_product():
+    product = input('Name of the product: ')
+    url = input(f'URL for {product}: ')
+    search_string = input('What string to search for: ')
+    insert_product(product, url, search_string)
 
 def discord_notification(url, product):
+    """ Send Discord Notification with Product Name and URL"""
     message = {
     "content" : f"{product} found at {url}",
     "username" : "Product Monitor"
@@ -35,6 +54,11 @@ def checkstock(url, search_string):
 
 if __name__ == "__main__":
 
+    if (args_count := len(sys.argv)) > 1:
+        if sys.argv[1] == '-a':
+            add_product()
+            quit(0)
+
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
     cursor.execute('''SELECT * FROM products WHERE enabled = 1''')
@@ -50,3 +74,4 @@ if __name__ == "__main__":
         if(result == True):
             print('Product Found')
             discord_notification(url, product)
+    cursor.close()
