@@ -1,4 +1,4 @@
-import csv
+import sqlite3
 import requests
 import config
 
@@ -14,12 +14,12 @@ def discord_notification(url, product):
     except requests.exceptions.HTTPError as err:
         print(err)
     else:
-        print("Payload delivered successfully, code {}.".format(result.status_code))
+        print("Discord Webhook Successful, Code {}.".format(result.status_code))
 
 def checkstock(url, search_string):
     """ Checks stock of page by downloading url and checking to see if 
         search_string exists on the page """
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
     headers = {'User-Agent': user_agent}
     print(f'DOWNLOADING {url}')
     website = requests.get(url,headers)
@@ -33,33 +33,20 @@ def checkstock(url, search_string):
     else:
         print("ERROR: Reached Else case of checkstock")
 
-
-
-
 if __name__ == "__main__":
 
-    #Open Product File as Read, and convert it to a Dictionary
-    csv_file = open('products.csv', mode='r')
-    csv_dict = csv.DictReader(csv_file)
-    counter = 0
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()
+    cursor.execute('''SELECT * FROM products WHERE enabled = 1''')
 
-    #iterate through rows of dictionary
-    for row in csv_dict:
-        #Captures the column names and continues
-        if counter == 0:
-            print(f'Opened products.csv, columns are: {", ".join(row)}')
-            counter += 1
+    for row in cursor:
+        id = row[0]
+        product = row[2]
+        url = row[3]
+        search_string = row[4]
 
-        # Checks if row is enabled, and calls checkstock to inspect site
-        # If checkstock returns True, it sends a discord message    
-        if row["Enabled"] == 'Y':
-            print(f'CHECKING: {row["URL"]}')
-            result = checkstock(row["URL"], row["SearchString"])
-            if(result == True):
-                discord_notification(row["URL"], row["Product"])
-
-
-        if row["Enabled"] == 'N':
-            print(f'SKIPPING: {row["URL"]}')
-        counter += 1
-    print(f'Processed {counter-1} websites.')
+        print(f'CHECKING: {url}')
+        result = checkstock(url, search_string)
+        if(result == True):
+            print('Product Found')
+            discord_notification(url, product)
