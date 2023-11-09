@@ -1,7 +1,8 @@
 import sqlite3
 import requests
-import config
+#import config
 import sys
+import os
 
 
 #TODO - Move from config.py to Environment Variables
@@ -9,9 +10,10 @@ import sys
 #TODO - Add Logging
 
 def list_products():
+    """ List All Products"""
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
-    print("ID\tEnabled?\tProduct\tSearch String")
+    print("ID\tEnabled?\tProduct\tURL\tSearch String")
     cursor.execute('''SELECT * FROM products WHERE enabled = 1''')
     for row in cursor:
         id = row[0]
@@ -44,11 +46,12 @@ def add_product():
 
 def discord_notification(url, product):
     """ Send Discord Notification with Product Name and URL"""
+    discord_webhook = os.getenv('DISCORD_WEBHOOK')
     message = {
     "content" : f"{product} found at {url}",
     "username" : "Product Monitor"
     }
-    result = requests.post(config.discord_webhook_url, json = message)
+    result = requests.post(discord_webhook, json = message)
 
     try:
         result.raise_for_status()
@@ -76,6 +79,7 @@ def checkstock(url, search_string):
 
 if __name__ == "__main__":
 
+    #Check for arguments like -a and -l
     if (args_count := len(sys.argv)) > 1:
         if sys.argv[1] == '-a':
             add_product()
@@ -83,6 +87,11 @@ if __name__ == "__main__":
         if sys.argv[1] == '-l':
             list_products()
             quit(0)
+
+    #Confirm DISCORD_WEBHOOK environment variable exists
+    if(('DISCORD_WEBHOOK' in os.environ) == False):
+        print("Missing DISCORD_WEBHOOK Variable")
+        quit(1)
 
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
