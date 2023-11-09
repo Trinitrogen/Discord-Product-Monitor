@@ -3,16 +3,38 @@ import requests
 import config
 import sys
 
+
+#TODO - Move from config.py to Environment Variables
+#TODO - Add Disable and Delete Functions
+#TODO - Add Logging
+
+def list_products():
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()
+    print("ID\tEnabled?\tProduct\tSearch String")
+    cursor.execute('''SELECT * FROM products WHERE enabled = 1''')
+    for row in cursor:
+        id = row[0]
+        product = row[2]
+        url = row[3]
+        search_string = row[4]
+
+        if(row[1] == 1):
+            enabled = "Yes"
+        else:
+            enabled = "No"
+        print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
+
 def insert_product(product, url, search_string):
-        """ Insert Product Into Database """
-        sql =   '''INSERT INTO products (enabled,product_name, url, 
-                search_string) VALUES (?,?,?,?);'''
-        data_tuple = (1,product, url, search_string)
-        insert_connection = sqlite3.connect('products.db')
-        insert_cursor = insert_connection.cursor()
-        insert_cursor.execute(sql, data_tuple)
-        insert_connection.commit()
-        insert_cursor.close()
+    """ Insert Product Into Database """
+    sql =   '''INSERT INTO products (enabled,product_name, url, 
+            search_string) VALUES (?,?,?,?);'''
+    data_tuple = (1,product, url, search_string)
+    insert_connection = sqlite3.connect('products.db')
+    insert_cursor = insert_connection.cursor()
+    insert_cursor.execute(sql, data_tuple)
+    insert_connection.commit()
+    insert_cursor.close()
 
 def add_product():
     product = input('Name of the product: ')
@@ -57,6 +79,9 @@ if __name__ == "__main__":
     if (args_count := len(sys.argv)) > 1:
         if sys.argv[1] == '-a':
             add_product()
+            quit(0)
+        if sys.argv[1] == '-l':
+            list_products()
             quit(0)
 
     connection = sqlite3.connect('products.db')

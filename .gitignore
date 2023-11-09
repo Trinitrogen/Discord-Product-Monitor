@@ -1,7 +1,5 @@
 #Project Specific
 products.sql
-products.db
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
