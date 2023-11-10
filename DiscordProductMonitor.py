@@ -9,6 +9,48 @@ from urllib.parse import urlparse
 #TODO - Add Disable and Delete Functions
 #TODO - Add Logging
 
+def disable_product():
+    """ calls list_products, then prompts user to provide ID of product, 
+    then sets the Enabled row to 0"""
+    list_disabled_products()
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()    
+    sql =   '''UPDATE products SET enabled = 0 WHERE product_id = ?;'''
+    id = input('Which Product To Disable: ')   
+    cursor.execute(sql,id)
+    connection.commit()
+    cursor.close()
+
+def enable_product():
+    """ calls list_products, then prompts user to provide ID of product, 
+    then sets the Enabled row to 1"""
+    list_products() 
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()    
+    sql =   '''UPDATE products SET enabled = 1 WHERE product_id = ?;'''
+    id = input('Which Product To Disable: ')   
+    cursor.execute(sql,id)
+    connection.commit()
+    cursor.close()
+
+def list_disabled_products():
+    """ List All Products"""
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()
+    print("ID\tEnabled?\tProduct\tURL\tSearch String")
+    cursor.execute('''SELECT * FROM products WHERE enabled = 0''')
+    for row in cursor:
+        id = row[0]
+        product = row[2]
+        url = urlparse(row[3]).netloc
+        search_string = row[4]
+
+        if(row[1] == 1):
+            enabled = "Yes"
+        else:
+            enabled = "No"
+        print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
+    cursor.close()
 
 def list_products():
     """ List All Products"""
@@ -27,6 +69,7 @@ def list_products():
         else:
             enabled = "No"
         print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
+    cursor.close()
 
 def insert_product(product, url, search_string):
     """ Insert Product Into Database """
@@ -87,6 +130,12 @@ if __name__ == "__main__":
             quit(0)
         if sys.argv[1] == '-l':
             list_products()
+            quit(0)
+        if sys.argv[1] == '-d':
+            disable_product()
+            quit(0)
+        if sys.argv[1] == '-e':
+            enable_product()
             quit(0)
 
     #Confirm DISCORD_WEBHOOK environment variable exists
