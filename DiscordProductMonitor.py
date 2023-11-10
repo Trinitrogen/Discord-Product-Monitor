@@ -1,13 +1,14 @@
 import sqlite3
 import requests
-#import config
 import sys
 import os
+from urllib.parse import urlparse
 
 
-#TODO - Move from config.py to Environment Variables
+#TODO - Fix Checkstock Else Case
 #TODO - Add Disable and Delete Functions
 #TODO - Add Logging
+
 
 def list_products():
     """ List All Products"""
@@ -18,7 +19,7 @@ def list_products():
     for row in cursor:
         id = row[0]
         product = row[2]
-        url = row[3]
+        url = urlparse(row[3]).netloc
         search_string = row[4]
 
         if(row[1] == 1):
