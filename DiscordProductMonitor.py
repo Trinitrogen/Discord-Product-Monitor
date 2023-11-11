@@ -5,33 +5,39 @@ import os
 from urllib.parse import urlparse
 
 
-#TODO - Fix Checkstock Else Case
-#TODO - Add Disable and Delete Functions
+#TODO - Add column for last checked and last found
 #TODO - Add Logging
+#TODO - Disable Product When Found
 
-def disable_product():
+
+def test_search():
+    """Takes interactive input and tests if product is in stock
+    but does not send notification"""
+    url = input("URL Of Product: ")
+    search_string = input("Sting To Search For: ")
+    result = checkstock(url, search_string)
+
+def disable_product(id):
     """ calls list_products, then prompts user to provide ID of product, 
     then sets the Enabled row to 0"""
-    list_disabled_products()
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()    
-    sql =   '''UPDATE products SET enabled = 0 WHERE product_id = ?;'''
-    id = input('Which Product To Disable: ')   
+    sql =   '''UPDATE products SET enabled = 0 WHERE product_id = ?;''' 
     cursor.execute(sql,id)
     connection.commit()
     cursor.close()
+    connection.close()
 
-def enable_product():
+def enable_product(id):
     """ calls list_products, then prompts user to provide ID of product, 
     then sets the Enabled row to 1"""
-    list_products() 
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()    
-    sql =   '''UPDATE products SET enabled = 1 WHERE product_id = ?;'''
-    id = input('Which Product To Disable: ')   
+    sql =   '''UPDATE products SET enabled = 1 WHERE product_id = ?;''' 
     cursor.execute(sql,id)
     connection.commit()
     cursor.close()
+    connection.close()
 
 def list_disabled_products():
     """ List All Products"""
@@ -51,8 +57,9 @@ def list_disabled_products():
             enabled = "No"
         print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
     cursor.close()
+    connection.close()
 
-def list_products():
+def list_enabled_products():
     """ List All Products"""
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
@@ -70,6 +77,29 @@ def list_products():
             enabled = "No"
         print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
     cursor.close()
+    connection.close()
+
+def list_products():
+    """ List All Products"""
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()
+    print("ID\tEnabled?\tProduct\tURL\tSearch String")
+    print("--\t--------\t-------\t---\t-------------")
+    sql =  '''SELECT * FROM products'''
+    cursor.execute(sql)
+    for row in cursor:
+        id = row[0]
+        product = row[2]
+        url = urlparse(row[3]).netloc
+        search_string = row[4]
+
+        if(row[1] == 1):
+            enabled = "Yes"
+        else:
+            enabled = "No"
+        print(f"{id}\t{enabled}\t{product}\t{url}\t{search_string}")
+    cursor.close()
+    connection.close()
 
 def insert_product(product, url, search_string):
     """ Insert Product Into Database """
@@ -81,6 +111,7 @@ def insert_product(product, url, search_string):
     insert_cursor.execute(sql, data_tuple)
     insert_connection.commit()
     insert_cursor.close()
+    insert_connection.close()
 
 def add_product():
     product = input('Name of the product: ')
@@ -116,14 +147,22 @@ def checkstock(url, search_string):
         print("ERROR: Website returns code " + str(website.status_code))
         return False
     if search_string in website.text:
-        print("SUCCESS: Product Found at " + url)
+        print("IN STOCK: Product Found at " + url)
         return True
+    if search_string not in website.text:
+        print("OUT OF STOCK: Product not found at " + url)
+        return False
     else:
-        print("ERROR: Reached Else case of checkstock")
+        print("ERROR: Else case of checkstock")
 
 if __name__ == "__main__":
 
-    #Check for arguments like -a and -l
+    #Confirm DISCORD_WEBHOOK environment variable exists
+    if(('DISCORD_WEBHOOK' in os.environ) == False):
+        print("Missing DISCORD_WEBHOOK Variable")
+        quit(1)
+
+    #Check for arguments
     if (args_count := len(sys.argv)) > 1:
         if sys.argv[1] == '-a':
             add_product()
@@ -132,16 +171,20 @@ if __name__ == "__main__":
             list_products()
             quit(0)
         if sys.argv[1] == '-d':
-            disable_product()
+            list_enabled_products()
+            id = input('Which Product To Disable: ')
+            disable_product(id)
             quit(0)
         if sys.argv[1] == '-e':
-            enable_product()
+            list_disabled_products()
+            id = input('Which Product To Enable: ')  
+            enable_product(id)
             quit(0)
-
-    #Confirm DISCORD_WEBHOOK environment variable exists
-    if(('DISCORD_WEBHOOK' in os.environ) == False):
-        print("Missing DISCORD_WEBHOOK Variable")
-        quit(1)
+        if sys.argv[1] == '-t':
+            test_search()
+            quit(0)
+        else:
+            print(f'Unknown Parameter {sys.argv[1]}')
 
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
@@ -156,6 +199,7 @@ if __name__ == "__main__":
         print(f'CHECKING: {url}')
         result = checkstock(url, search_string)
         if(result == True):
-            print('Product Found')
+            print('Product Found Calling Discord_Notification')
             discord_notification(url, product)
     cursor.close()
+    connection.close()
