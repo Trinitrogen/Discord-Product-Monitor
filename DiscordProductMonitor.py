@@ -162,6 +162,11 @@ if __name__ == "__main__":
         print("Missing DISCORD_WEBHOOK Variable")
         quit(1)
 
+    #Make sure current working directory is same as script
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
+
     #Check for arguments
     if (args_count := len(sys.argv)) > 1:
         if sys.argv[1] == '-a':
