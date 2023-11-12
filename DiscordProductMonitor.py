@@ -22,9 +22,17 @@ def disable_product(id):
     then sets the Enabled row to 0"""
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()    
-    sql =   '''UPDATE products SET enabled = 0 WHERE product_id = ?;''' 
-    cursor.execute(sql,id)
+    disable_sql =   '''UPDATE products SET enabled = 0 WHERE product_id = ?;'''
+    select_sql = '''SELECT product_name,url FROM products WHERE product_id = ?'''
+
+    #Disable the product
+    cursor.execute(disable_sql,(id,))
     connection.commit()
+
+    #print the result
+    result = cursor.execute(select_sql,(id,)).fetchone()
+    print(f'DISABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+
     cursor.close()
     connection.close()
 
@@ -33,9 +41,17 @@ def enable_product(id):
     then sets the Enabled row to 1"""
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()    
-    sql =   '''UPDATE products SET enabled = 1 WHERE product_id = ?;''' 
-    cursor.execute(sql,id)
+    enable_sql =   '''UPDATE products SET enabled = 1 WHERE product_id = ?;'''
+    select_sql = '''SELECT product_name,url FROM products WHERE product_id = ?'''
+
+    #Enable the product
+    cursor.execute(enable_sql,(id,))
     connection.commit()
+
+    #Print Result
+    result = cursor.execute(select_sql,(id,)).fetchone()
+    print(f'ENABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+
     cursor.close()
     connection.close()
 
@@ -206,5 +222,6 @@ if __name__ == "__main__":
         if(result == True):
             print('Product Found Calling Discord_Notification')
             discord_notification(url, product)
+            disable_product(id)
     cursor.close()
     connection.close()
