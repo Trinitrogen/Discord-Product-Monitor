@@ -38,6 +38,26 @@ def disable_product(id):
     cursor.close()
     connection.close()
 
+def remove_product(id):
+    """ calls list_products, then prompts user to provide ID of product, 
+    then sets the Enabled row to 1"""
+    connection = sqlite3.connect('products.db')
+    cursor = connection.cursor()    
+    select_sql = '''SELECT product_name,url FROM products WHERE product_id = ?'''
+    remove_sql =   '''DELETE FROM products WHERE product_id = ?;'''
+
+    #Save out the product, then delete it
+    product = cursor.execute(select_sql,(id,)).fetchone()
+    cursor.execute(remove_sql,(id,))
+    connection.commit()
+
+    #Log Result
+    #print(f'ENABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+    logging.info(f'Removed {product[0]} from {str(urlparse(product[1]).netloc)}')
+
+    cursor.close()
+    connection.close()
+
 def enable_product(id):
     """ calls list_products, then prompts user to provide ID of product, 
     then sets the Enabled row to 1"""
@@ -231,9 +251,15 @@ if __name__ == "__main__":
         if sys.argv[1] == '-t':
             test_search()
             quit(0)
+        if sys.argv[1] == '-r':
+            list_products()
+            id = input('Which Product To Remove: ')
+            remove_product(id)
+            quit(0)
         else:
             #print(f'Unknown Parameter {sys.argv[1]}')
             logging.error(f'Unknown Parameter {sys.argv[1]}')
+            quit(1)
 
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
