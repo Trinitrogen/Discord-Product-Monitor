@@ -7,8 +7,7 @@ from urllib.parse import urlparse
 
 
 #TODO - Add column for last checked and last found
-#TODO - Add Logging
-#TODO - Disable Product When Found
+#TODO - Rotate Host Files
 
 
 def test_search():
@@ -214,6 +213,11 @@ def checkstock(url, search_string):
 
 if __name__ == "__main__":
 
+    #Make sure current working directory is same as script
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    os.chdir(dname)
+
     #Setup Logging
     logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s',level=logging.INFO, datefmt='%d-%b-%y %H:%M:%S')
     logging.info('Executing Script')
@@ -224,11 +228,6 @@ if __name__ == "__main__":
         #print("MISSING DISCORD_WEBHOOK Variable")
         logging.error('Missing DISCORD_WEBHOOK Variable, Quitting')
         quit(1)
-
-    #Make sure current working directory is same as script
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
 
     #Check for arguments
     if (args_count := len(sys.argv)) > 1:
