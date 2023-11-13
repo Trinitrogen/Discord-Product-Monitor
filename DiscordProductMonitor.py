@@ -2,6 +2,7 @@ import sqlite3
 import requests
 import sys
 import os
+import logging
 from urllib.parse import urlparse
 
 
@@ -29,9 +30,10 @@ def disable_product(id):
     cursor.execute(disable_sql,(id,))
     connection.commit()
 
-    #print the result
+    #log the result
     result = cursor.execute(select_sql,(id,)).fetchone()
-    print(f'DISABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+    #print(f'DISABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+    logging.info(f'DISABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
 
     cursor.close()
     connection.close()
@@ -48,9 +50,10 @@ def enable_product(id):
     cursor.execute(enable_sql,(id,))
     connection.commit()
 
-    #Print Result
+    #Log Result
     result = cursor.execute(select_sql,(id,)).fetchone()
-    print(f'ENABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+    #print(f'ENABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
+    logging.info(f'ENABLED {result[0]} from {str(urlparse(result[1]).netloc)}')
 
     cursor.close()
     connection.close()
@@ -121,11 +124,12 @@ def insert_product(product, url, search_string):
     """ Insert Product Into Database """
     sql =   '''INSERT INTO products (enabled,product_name, url, 
             search_string) VALUES (?,?,?,?);'''
-    data_tuple = (1,product, url, search_string)
+    product_data = (1,product, url, search_string)
     insert_connection = sqlite3.connect('products.db')
     insert_cursor = insert_connection.cursor()
-    insert_cursor.execute(sql, data_tuple)
+    insert_cursor.execute(sql, product_data)
     insert_connection.commit()
+    logging.info(f'Added {product} To Database           ')
     insert_cursor.close()
     insert_connection.close()
 
@@ -147,35 +151,58 @@ def discord_notification(url, product):
     try:
         result.raise_for_status()
     except requests.exceptions.HTTPError as err:
+        logging.error('Failed To Call Discord Webhook')
         print(err)
     else:
-        print("Discord Webhook Successful, Code {}.".format(result.status_code))
+        #print("DISCORD Webhook Successful, Code {}.".format(result.status_code))
+        logging.info('Discord Webhook Successful'.format(result.status_code))
 
 def checkstock(url, search_string):
     """ Checks stock of page by downloading url and checking to see if 
         search_string exists on the page """
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
-    headers = {'User-Agent': user_agent}
-    print(f'DOWNLOADING {url}')
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Connection': 'keep-alive',
+        }
+    #print(f'DOWNLOADING {url}')
+    logging.info(f'Downloading {url}')
     website = requests.get(url,headers)
 
     if website.status_code != 200:
-        print("ERROR: Website returns code " + str(website.status_code))
+        #print("ERROR: Website returns code " + str(website.status_code))
+        logging.error('Website returns code ' + str(website.status_code))
         return False
     if search_string in website.text:
-        print("IN STOCK: Product Found at " + url)
+        #print("IN STOCK: Product Found at " + url)
+        logging.info('IN STOCK: Product Found at ' + url)
         return True
     if search_string not in website.text:
-        print("OUT OF STOCK: Product not found at " + url)
+        #print("OUT OF STOCK: Product not found at " + url)
+        logging.info('OUT OF STOCK: Product not found at ' + url)
         return False
     else:
-        print("ERROR: Else case of checkstock")
+        logging.error('Reached Else Case of checkstock()')
+        #print("ERROR: Else case of checkstock")
 
 if __name__ == "__main__":
 
+    #Setup Logging
+    logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s',level=logging.INFO, datefmt='%d-%b-%y %H:%M:%S')
+    logging.info('Executing Script')
+    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout)) #Print to file and stdout
+
     #Confirm DISCORD_WEBHOOK environment variable exists
     if(('DISCORD_WEBHOOK' in os.environ) == False):
-        print("Missing DISCORD_WEBHOOK Variable")
+        #print("MISSING DISCORD_WEBHOOK Variable")
+        logging.error('Missing DISCORD_WEBHOOK Variable, Quitting')
         quit(1)
 
     #Make sure current working directory is same as script
@@ -205,7 +232,8 @@ if __name__ == "__main__":
             test_search()
             quit(0)
         else:
-            print(f'Unknown Parameter {sys.argv[1]}')
+            #print(f'Unknown Parameter {sys.argv[1]}')
+            logging.error(f'Unknown Parameter {sys.argv[1]}')
 
     connection = sqlite3.connect('products.db')
     cursor = connection.cursor()
@@ -220,7 +248,7 @@ if __name__ == "__main__":
         print(f'CHECKING: {url}')
         result = checkstock(url, search_string)
         if(result == True):
-            print('Product Found Calling Discord_Notification')
+            #print('Product Found Calling Discord_Notification')
             discord_notification(url, product)
             disable_product(id)
     cursor.close()
