@@ -6,8 +6,10 @@ import logging
 from urllib.parse import urlparse
 
 
+#TODO - Add Try/Catch for requests
 #TODO - Add column for last checked and last found
 #TODO - Rotate Host Files
+
 
 
 def test_search():
@@ -193,7 +195,7 @@ def checkstock(url, search_string):
         }
     #print(f'DOWNLOADING {url}')
     logging.info(f'Downloading {url}')
-    website = requests.get(url,headers)
+    website = requests.get(url,headers=headers)
 
     if website.status_code != 200:
         #print("ERROR: Website returns code " + str(website.status_code))
